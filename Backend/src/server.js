@@ -9,7 +9,7 @@ import { mysqlConnection } from "../bds/mysql.js";
 
 // Rutas
 import authRoutes from "./routes/auth.js";
-// import userRoutes from "./routes/user.routes.js";
+import userRoutes from "./routes/users.routes.js";
 // import blogRoutes from "./routes/blog.routes.js";
 // import feedbackRoutes from "./routes/feedback.routes.js";
 
@@ -28,7 +28,7 @@ app.use(cors({
 // 📦 middlewares
 app.use(express.json());
 
-// 🌐 Conexión Mongo
+// 🌐 Conexión Mongo (para lo que uses en paralelo)
 connectMongo();
 
 // 🗄️ Conexión MySQL
@@ -41,7 +41,7 @@ mysqlConnection.getConnection()
 
 // 📌 Rutas
 app.use("/api/auth", authRoutes);
-// app.use("/api/users", userRoutes);
+app.use("/api/users", userRoutes);
 // app.use("/api/blog", blogRoutes);
 // app.use("/api/feedback", feedbackRoutes);
 
@@ -52,7 +52,7 @@ app.use((err, req, res, next) => {
 });
 
 // 🚀 Servidor
-const PORT = process.env.PORT || 5173;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`)
 );
