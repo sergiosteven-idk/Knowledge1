@@ -1,0 +1,33 @@
+/* Ajustes globales para que tu estilo anterior gane a Tailwind */
+html { font-size: 100%; }
+body { min-height: 100vh; }
+
+/* Si tu Home usa un contenedor principal, ponle esta clase */
+.home-root, .container, .section, .content-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Si Home tiene fondo/gradiente propio, fuerza prioridad */
+.home-hero, .home-banner, .hero, .portada {
+  background: inherit !important;
+}
+
+/* Botones y tarjetas como en tu diseño */
+.stat-card {
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  background: #fff;
+}
+
+button, .btn {
+  border-radius: 8px;
+}
+
+/* Alto contraste cooperando con tu CSS: */
+.a11y-contrast, .a11y-contrast body { background: #000 !important; color: #fff !important; }
+.a11y-contrast a { color: #0ff !important; text-decoration: underline; }
+.a11y-contrast button { background: #111 !important; color: #fff !important; border-color: #777 !important; }
+.a11y-contrast input, .a11y-contrast select, .a11y-contrast textarea {
+  background: #111 !important; color: #fff !important; border-color: #777 !important;
+}

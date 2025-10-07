@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Administrador {
+  id_admin   Int                       @id @default(autoincrement())
+  nombre     String                    @db.VarChar(100)
+  correo     String                    @unique(map: "correo") @db.VarChar(100)
+  contrasena String                    @db.VarChar(255)
+  tipo_admin Administrador_tipo_admin? @default(editor)
+  Miembro    Miembro[]
+}
+
+model Curso {
+  id_curso     Int          @id @default(autoincrement())
+  nombre       String       @db.VarChar(200)
+  descripcion  String?      @db.Text
+  categoria    String?      @db.VarChar(100)
+  nivel        Curso_nivel? @default(b__sico)
+  fecha_inicio DateTime?    @db.Date
+  fecha_fin    DateTime?    @db.Date
+  Modulo       Modulo[]
+}
+
+model Donaciones {
+  id_donacion    Int                     @id @default(autoincrement())
+  id_usuario     Int
+  monto          Decimal                 @db.Decimal(10, 2)
+  fecha_donacion DateTime?               @default(now()) @db.DateTime(0)
+  metodo_pago    Donaciones_metodo_pago?
+  Miembro        Miembro                 @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "Donaciones_ibfk_1")
+
+  @@index([id_usuario], map: "id_usuario")
+}
+
+model Evaluacion {
+  id_evaluacion Int              @id @default(autoincrement())
+  nombre        String           @db.VarChar(200)
+  descripcion   String?          @db.Text
+  tipo          Evaluacion_tipo? @default(quiz)
+  id_modulo     Int
+  Modulo        Modulo           @relation(fields: [id_modulo], references: [id_modulo], onDelete: NoAction, onUpdate: NoAction, map: "Evaluacion_ibfk_1")
+  Pregunta      Pregunta[]
+  Resultado     Resultado[]
+
+  @@index([id_modulo], map: "id_modulo")
+}
+
+model Miembro {
+  id_usuario    Int                   @id @default(autoincrement())
+  nombre        String                @db.VarChar(100)
+  apellido      String                @db.VarChar(100)
+  correo        String                @unique(map: "correo") @db.VarChar(100)
+  contrasena    String                @db.VarChar(255)
+  tipo_usuario  Miembro_tipo_usuario? @default(estudiante)
+  id_admin      Int?
+  Donaciones    Donaciones[]
+  Administrador Administrador?        @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction, map: "Miembro_ibfk_1")
+  Progreso      Progreso[]
+  Resultado     Resultado[]
+  Usuario_Rol   Usuario_Rol[]
+
+  @@index([id_admin], map: "id_admin")
+}
+
+model Modulo {
+  id_modulo     Int          @id @default(autoincrement())
+  nombre_modulo String       @db.VarChar(200)
+  descripcion   String?      @db.Text
+  id_curso      Int
+  Evaluacion    Evaluacion[]
+  Curso         Curso        @relation(fields: [id_curso], references: [id_curso], onDelete: NoAction, onUpdate: NoAction, map: "Modulo_ibfk_1")
+  Progreso      Progreso[]
+
+  @@index([id_curso], map: "id_curso")
+}
+
+model Permiso {
+  id_permiso  Int           @id @default(autoincrement())
+  accion      String        @db.VarChar(100)
+  recurso     String        @db.VarChar(100)
+  Rol_Permiso Rol_Permiso[]
+}
+
+model Pregunta {
+  id_pregunta        Int            @id @default(autoincrement())
+  texto              String         @db.Text
+  tipo               Pregunta_tipo?
+  opciones           Json?
+  respuesta_correcta String?        @db.Text
+  id_evaluacion      Int
+  Evaluacion         Evaluacion     @relation(fields: [id_evaluacion], references: [id_evaluacion], onDelete: NoAction, onUpdate: NoAction, map: "Pregunta_ibfk_1")
+
+  @@index([id_evaluacion], map: "id_evaluacion")
+}
+
+model Progreso {
+  id_progreso         Int              @id @default(autoincrement())
+  id_usuario          Int
+  id_modulo           Int
+  estado              Progreso_estado? @default(pendiente)
+  ultima_modificacion DateTime?        @default(now()) @db.DateTime(0)
+  Miembro             Miembro          @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "Progreso_ibfk_1")
+  Modulo              Modulo           @relation(fields: [id_modulo], references: [id_modulo], onDelete: NoAction, onUpdate: NoAction, map: "Progreso_ibfk_2")
+
+  @@index([id_modulo], map: "id_modulo")
+  @@index([id_usuario], map: "id_usuario")
+}
+
+model Resultado {
+  id_resultado      Int        @id @default(autoincrement())
+  id_usuario        Int
+  id_evaluacion     Int
+  calificacion      Decimal?   @db.Decimal(5, 2)
+  fecha_realizacion DateTime?  @default(now()) @db.DateTime(0)
+  Miembro           Miembro    @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "Resultado_ibfk_1")
+  Evaluacion        Evaluacion @relation(fields: [id_evaluacion], references: [id_evaluacion], onDelete: NoAction, onUpdate: NoAction, map: "Resultado_ibfk_2")
+
+  @@index([id_evaluacion], map: "id_evaluacion")
+  @@index([id_usuario], map: "id_usuario")
+}
+
+model Rol {
+  id_rol      Int           @id @default(autoincrement())
+  nombre_rol  String        @db.VarChar(100)
+  descripcion String?       @db.Text
+  Rol_Permiso Rol_Permiso[]
+  Usuario_Rol Usuario_Rol[]
+}
+
+model Rol_Permiso {
+  id_rol     Int
+  id_permiso Int
+  Rol        Rol     @relation(fields: [id_rol], references: [id_rol], onDelete: NoAction, onUpdate: NoAction, map: "Rol_Permiso_ibfk_1")
+  Permiso    Permiso @relation(fields: [id_permiso], references: [id_permiso], onDelete: NoAction, onUpdate: NoAction, map: "Rol_Permiso_ibfk_2")
+
+  @@id([id_rol, id_permiso])
+  @@index([id_permiso], map: "id_permiso")
+}
+
+model Usuario_Rol {
+  id_usuario Int
+  id_rol     Int
+  Miembro    Miembro @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "Usuario_Rol_ibfk_1")
+  Rol        Rol     @relation(fields: [id_rol], references: [id_rol], onDelete: NoAction, onUpdate: NoAction, map: "Usuario_Rol_ibfk_2")
+
+  @@id([id_usuario, id_rol])
+  @@index([id_rol], map: "id_rol")
+}
+
+enum Pregunta_tipo {
+  opcion_multiple
+  verdadero_falso
+  respuesta_abierta
+}
+
+enum Evaluacion_tipo {
+  quiz
+  examen
+  pr__ctica @map("prÃ¡ctica")
+}
+
+enum Progreso_estado {
+  pendiente
+  en_progreso @map("en progreso")
+  completado
+}
+
+enum Donaciones_metodo_pago {
+  tarjeta
+  paypal
+  transferencia
+}
+
+enum Curso_nivel {
+  b__sico    @map("bÃ¡sico")
+  intermedio
+  avanzado
+}
+
+enum Administrador_tipo_admin {
+  super
+  editor
+  moderador
+}
+
+enum Miembro_tipo_usuario {
+  estudiante
+  docente
+  invitado
+}
