@@ -118,6 +118,58 @@ export default function A11yBar() {
 
   const pointerSourceRef = useRef(null);
   const lastSpokenSelectionRef = useRef("");
+  const lastSpokenElementTextRef = useRef("");
+
+  const extractReadableText = useCallback((origin) => {
+    if (!(origin instanceof Element)) return "";
+
+    if (origin.dataset?.a11yIgnore === "true" || origin.closest?.("[data-a11y-ignore='true']")) {
+      return "";
+    }
+
+    const labelledById = origin.getAttribute("aria-labelledby");
+    if (labelledById) {
+      const labelEl = document.getElementById(labelledById);
+      const labelText = labelEl?.innerText?.trim();
+      if (labelText) return labelText;
+    }
+
+    const ariaLabel = origin.getAttribute("aria-label");
+    if (ariaLabel) return ariaLabel.trim();
+
+    const alt = origin.getAttribute("alt");
+    if (alt) return alt.trim();
+
+    const titleAttr = origin.getAttribute("title");
+    if (titleAttr) return titleAttr.trim();
+
+    const isHtmlInput = typeof HTMLInputElement !== "undefined" && origin instanceof HTMLInputElement;
+    const isHtmlTextArea = typeof HTMLTextAreaElement !== "undefined" && origin instanceof HTMLTextAreaElement;
+
+    if (isHtmlInput || isHtmlTextArea) {
+      if (origin.value?.trim()) return origin.value.trim();
+      const placeholder = origin.getAttribute("placeholder");
+      if (placeholder) return placeholder.trim();
+    }
+
+    const textContent = origin.innerText || origin.textContent || "";
+    const cleanText = textContent.replace(/\s+/g, " ").trim();
+    if (cleanText) return cleanText;
+
+    const labelledAncestor = origin.closest?.("[aria-label]");
+    if (labelledAncestor) {
+      const ancestorLabel = labelledAncestor.getAttribute("aria-label");
+      if (ancestorLabel) return ancestorLabel.trim();
+    }
+
+    const titledAncestor = origin.closest?.("[title]");
+    if (titledAncestor) {
+      const ancestorTitle = titledAncestor.getAttribute("title");
+      if (ancestorTitle) return ancestorTitle.trim();
+    }
+
+    return "";
+  }, []);
 
   useEffect(() => {
     if (!synth) return;
@@ -129,21 +181,37 @@ export default function A11yBar() {
     const handleSelectionFromPointer = () => {
       const selection = window.getSelection();
       const selectedText = selection?.toString().trim();
-      if (!selectedText) return;
-
       const origin = pointerSourceRef.current instanceof Element ? pointerSourceRef.current : null;
-      if (origin?.closest?.(".a11y-bar")) {
-        return;
-      }
-      if (origin && /^(input|textarea|select)$/i.test(origin.tagName)) {
-        return;
-      }
-      if (selectedText === lastSpokenSelectionRef.current) {
+      pointerSourceRef.current = null;
+
+      if (origin?.closest?.(".a11y-bar") || origin?.closest?.("[data-a11y-ignore='true']")) {
         return;
       }
 
-      lastSpokenSelectionRef.current = selectedText;
-      speakText(selectedText);
+      if (selectedText) {
+        if (selectedText === lastSpokenSelectionRef.current) {
+          return;
+        }
+        lastSpokenSelectionRef.current = selectedText;
+        lastSpokenElementTextRef.current = "";
+        speakChunks(selectedText);
+        return;
+      }
+
+      if (origin instanceof Element) {
+        if (/^(input|textarea|select)$/i.test(origin.tagName)) {
+          return;
+        }
+
+        const textToSpeak = extractReadableText(origin);
+        if (!textToSpeak || textToSpeak === lastSpokenElementTextRef.current) {
+          return;
+        }
+
+        lastSpokenSelectionRef.current = "";
+        lastSpokenElementTextRef.current = textToSpeak;
+        speakChunks(textToSpeak);
+      }
     };
 
     document.addEventListener("pointerdown", rememberPointerSource, true);
@@ -155,7 +223,7 @@ export default function A11yBar() {
       document.removeEventListener("pointerup", handleSelectionFromPointer);
       document.removeEventListener("touchend", handleSelectionFromPointer);
     };
-  }, [speakText, synth]);
+  }, [extractReadableText, speakChunks, synth]);
 
   const readPdfBuffer = useCallback(async (data, { name = "documento" } = {}) => {
     try {
